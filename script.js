@@ -65,14 +65,20 @@ function saveBestMap(obj){ localStorage.setItem(BEST_KEY, JSON.stringify(obj)); 
 function modeKey(tasks, secs){ return `${tasks}×${secs}s`; }
 function isBetter(a, b){ if (!b) return true; if (a.score !== b.score) return a.score > b.score; return a.time < b.time; }
 
-// ----- Focus helpers (keep keyboard open on iOS) -----
-function keepFocusOnSubmit(){
-  // Prevent the button press from stealing focus (which would close the keyboard)
-  submitBtn.addEventListener('mousedown', e => e.preventDefault());
-  submitBtn.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+// ----- Focus / submit handling -----
+function wireSubmitHandlers(){
+  // Touch: submit immediately and keep focus (prevent default to avoid losing focus)
+  submitBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    submitAnswer();
+  }, { passive: false });
+
+  // Mouse: prevent focus steal, real submit on click
+  submitBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  submitBtn.addEventListener('click', () => submitAnswer());
 }
+
 function focusAnswer(){
-  // Try to (re)focus over a couple of frames without scrolling
   requestAnimationFrame(() => {
     answerEl.focus({ preventScroll: true });
     requestAnimationFrame(() => {
@@ -101,7 +107,7 @@ startBtn.onclick = () => {
   scoreEl.textContent = score;
 
   toGame();
-  keepFocusOnSubmit();
+  wireSubmitHandlers();
   nextQuestion();
 };
 restartBtn.onclick = () => startBtn.click();
@@ -119,7 +125,7 @@ function nextQuestion(){
   a = rand(10); b = rand(10);
   questionEl.textContent = `${a} × ${b} = ?`;
 
-  // Prepare input but DON'T disable/blur (keeps keyboard up)
+  // Clear but keep focus so keyboard stays up
   answerEl.readOnly = false;
   answerEl.value = '';
   submitBtn.disabled = true;
@@ -190,7 +196,6 @@ function startTimer(ms, onExpire){
 function clearTimer(){ if (tickId){ clearInterval(tickId); tickId = null; } }
 
 // ----- Input (digits only) -----
-submitBtn.addEventListener('click', () => submitAnswer());
 answerEl.addEventListener('input', () => {
   const digits = answerEl.value.replace(/\D+/g, '').slice(0, 3);
   if (digits !== answerEl.value) answerEl.value = digits;
@@ -204,7 +209,7 @@ function submitAnswer(){
   if (Number.isNaN(val)) return;
 
   locked = true;
-  // Keep the input focused so the keyboard stays open, just make it read-only
+  // Keep keyboard up: don't blur, just make input read-only
   answerEl.readOnly = true;
   submitBtn.disabled = true;
   clearTimer();
