@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Times Trainer</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: -apple-system, system-ui; margin: 24px; }
+    .card { max-width: 480px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+    h1 { font-size: 22px; margin: 0 0 16px; }
+    .row { margin: 10px 0; display: flex; gap: 8px; align-items: center; }
+    input[type="number"] { font-size: 20px; padding: 10px; flex: 1; border-radius: 10px; border: 1px solid #ddd; }
+    button { font-size: 18px; padding: 10px 16px; border: 0; border-radius: 10px; }
+    button.primary { background: #007aff; color: white; }
+    .pill { background:#f2f2f7; padding:4px 10px; border-radius: 999px; font-size: 14px; }
+    .ok { color: #2aa84a; } .no { color: #d12a2a; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .option { background:#f2f2f7; padding:12px; border-radius:10px; text-align:center; }
+    .option:active { transform: scale(.98); }
+    .footer { font-size: 12px; color:#666; text-align:center; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Times Trainer ✖️</h1>
+    <div class="row">
+      <label>Tables up to:</label>
+      <select id="maxTable"></select>
+      <span class="pill">Mode:</span>
+      <select id="mode">
+        <option value="mixed">Mixed</option>
+        <option value="single">Practice table…</option>
+      </select>
+      <select id="singleN" style="display:none"></select>
+    </div>
+
+    <div id="q" class="row" style="font-size:28px; justify-content:center; margin:20px 0;"></div>
+
+    <div id="mc" class="grid"></div>
+
+    <div class="row">
+      <input id="answer" type="number" inputmode="numeric" placeholder="Type answer"/>
+      <button class="primary" id="checkBtn">Check</button>
+    </div>
+
+    <div id="feedback" class="row"></div>
+    <div class="row" style="justify-content:space-between">
+      <div>Score: <strong id="score">0</strong> / <span id="total">0</span></div>
+      <div>Streak: <strong id="streak">0</strong></div>
+    </div>
+    <div class="row" style="justify-content:flex-end">
+      <button id="nextBtn">Next ▶︎</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <div class="footer">Tip: Add to Home Screen for an app-like experience.</div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
