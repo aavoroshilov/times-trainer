@@ -1,95 +1,206 @@
-const maxTableEl = document.getElementById('maxTable');
-const singleNEl  = document.getElementById('singleN');
-const modeEl     = document.getElementById('mode');
-for (let i=5;i<=12;i++){ [maxTableEl,singleNEl].forEach(sel=>{ const o=document.createElement('option'); o.value=i;o.text=i; sel.appendChild(o); }); }
-maxTableEl.value = localStorage.getItem('maxTable') || 10;
-modeEl.value     = localStorage.getItem('mode') || 'mixed';
-singleNEl.value  = localStorage.getItem('singleN') || 7;
-singleNEl.style.display = modeEl.value==='single' ? '' : 'none';
-[maxTableEl,modeEl,singleNEl].forEach(el=>el.addEventListener('change',()=>{
-  localStorage.setItem('maxTable',maxTableEl.value);
-  localStorage.setItem('mode',modeEl.value);
-  localStorage.setItem('singleN',singleNEl.value);
-  singleNEl.style.display = modeEl.value==='single' ? '' : 'none';
-  newQuestion();
-}));
+// --- Elements ---
+const $ = id => document.getElementById(id);
+const settingsEl = $('settings');
+const gameEl = $('game');
+const summaryEl = $('summary');
 
-const qEl = document.getElementById('q');
-const mcEl = document.getElementById('mc');
-const ansEl = document.getElementById('answer');
-const feedbackEl = document.getElementById('feedback');
-const scoreEl = document.getElementById('score');
-const totalEl = document.getElementById('total');
-const streakEl = document.getElementById('streak');
+const taskCountEl = $('taskCount');
+const secondsPerTaskEl = $('secondsPerTask');
+const startBtn = $('startBtn');
 
-let a=0,b=0,correct=0,total=0,streak=0,answered=false;
+const qIndexEl = $('qIndex');
+const qTotalEl = $('qTotal');
+const scoreEl = $('score');
+const timerEl = $('timer');
+const questionEl = $('question');
+const answerEl = $('answer');
+const feedbackEl = $('feedback');
 
-function rand(n){ return 1+Math.floor(Math.random()*n); }
+const restartBtn = $('restartBtn');
+const changeBtn = $('changeBtn');
+const finalScoreEl = $('finalScore');
+const finalTotalEl = $('finalTotal');
+const finalMsgEl = $('finalMsg');
 
-function pickAB(){
-  const max = parseInt(maxTableEl.value,10);
-  if (modeEl.value==='single'){
-    const n = parseInt(singleNEl.value,10);
-    return [n, rand(max)];
-  }
-  return [rand(max), rand(max)];
+// --- State ---
+let totalTasks = 10;
+let secsPerTask = 10;
+let curIndex = 0;
+let score = 0;
+
+let a = 0, b = 0;
+let tickId = null;
+let remainingMs = 0;
+let locked = false; // lock input after submit/timeout until next starts
+
+// --- Utils ---
+function two(n){ return n < 10 ? '0'+n : ''+n; }
+function fmt(ms){
+  const s = Math.max(0, Math.ceil(ms/1000));
+  return `00:${two(s)}`;
+}
+function rand(n){ return 1 + Math.floor(Math.random()*n); } // 1..n
+
+function saveSettings(){
+  localStorage.setItem('tt.tasks', taskCountEl.value);
+  localStorage.setItem('tt.secs', secondsPerTaskEl.value);
+}
+function loadSettings(){
+  const t = localStorage.getItem('tt.tasks');
+  const s = localStorage.getItem('tt.secs');
+  if (t) taskCountEl.value = t;
+  if (s) secondsPerTaskEl.value = s;
 }
 
-function options(correct){
-  const set = new Set([correct]);
-  while(set.size<4){
-    const noise = correct + Math.floor((Math.random()-0.5)*6);
-    set.add(Math.max(1, noise===correct?correct+1:noise));
-  }
-  return Array.from(set).sort(()=>Math.random()-0.5);
+// --- Flow ---
+function show(el){ el.classList.remove('hidden'); }
+function hide(el){ el.classList.add('hidden'); }
+
+function toSettings(){
+  clearTimer();
+  hide(gameEl); hide(summaryEl); show(settingsEl);
 }
 
-function renderMC(){
-  mcEl.innerHTML='';
-  options(a*b).forEach(val=>{
-    const div=document.createElement('div');
-    div.className='option';
-    div.textContent=val;
-    div.addEventListener('click',()=>{ ansEl.value=val; check(); });
-    mcEl.appendChild(div);
+function toGame(){
+  hide(settingsEl); hide(summaryEl); show(gameEl);
+}
+
+function toSummary(){
+  clearTimer();
+  hide(settingsEl); hide(gameEl); show(summaryEl);
+}
+
+// Start game
+startBtn.onclick = () => {
+  totalTasks = parseInt(taskCountEl.value, 10) || 10;
+  secsPerTask = Math.min(120, Math.max(3, parseInt(secondsPerTaskEl.value, 10) || 10));
+  saveSettings();
+
+  curIndex = 0;
+  score = 0;
+  qTotalEl.textContent = totalTasks;
+  scoreEl.textContent = score;
+
+  toGame();
+  nextQuestion();
+};
+
+restartBtn.onclick = () => {
+  // restart with current settings
+  startBtn.click();
+};
+
+changeBtn.onclick = () => {
+  toSettings();
+};
+
+// Question lifecycle
+function nextQuestion(){
+  curIndex++;
+  feedbackEl.textContent = '';
+  locked = false;
+
+  if (curIndex > totalTasks){
+    endGame();
+    return;
+  }
+
+  qIndexEl.textContent = curIndex;
+  // Always 1..10 table
+  a = rand(10);
+  b = rand(10);
+  questionEl.textContent = `${a} × ${b} = ?`;
+
+  // reset input
+  answerEl.value = '';
+  answerEl.disabled = false;
+  answerEl.focus();
+
+  // start per-task timer
+  startTimer(secsPerTask * 1000, () => {
+    // timeout -> wrong
+    giveFeedback(false, a*b, true);
+    // short pause, then next
+    setTimeout(nextQuestion, 600);
   });
 }
 
-function newQuestion(){
-  [a,b]=pickAB();
-  qEl.textContent = `${a} × ${b} = ?`;
-  ansEl.value=''; answered=false;
-  feedbackEl.innerHTML='';
-  renderMC();
-  ansEl.focus();
+function endGame(){
+  finalScoreEl.textContent = score;
+  finalTotalEl.textContent = totalTasks;
+  finalMsgEl.textContent = verdict(score, totalTasks);
+  toSummary();
 }
 
-function check(){
-  if(answered) return;
-  total++; totalEl.textContent=total;
-  const val = parseInt(ansEl.value,10);
-  if(val === a*b){
-    correct++; streak++;
-    feedbackEl.innerHTML = `<span class="ok">✅ Great! ${a}×${b}=${a*b}</span>`;
-  }else{
-    streak=0;
-    feedbackEl.innerHTML = `<span class="no">❌ Oops. ${a}×${b}=${a*b}</span>`;
-  }
-  scoreEl.textContent=correct;
-  streakEl.textContent=streak;
-  answered=true;
+function verdict(ok, total){
+  const pct = (ok/total)*100;
+  if (pct >= 95) return "🌟 Phenomenal! Multiplication master!";
+  if (pct >= 85) return "🎉 Fantastic work! Keep it up!";
+  if (pct >= 70) return "✅ Great job! You're getting very strong.";
+  if (pct >= 50) return "👍 Good effort — practice makes perfect!";
+  return "💪 Keep practicing — you’ll crush it next time!";
 }
 
-document.getElementById('checkBtn').onclick = check;
-document.getElementById('nextBtn').onclick  = newQuestion;
-document.getElementById('resetBtn').onclick = ()=>{
-  correct=0; total=0; streak=0;
-  scoreEl.textContent=0; totalEl.textContent=0; streakEl.textContent=0;
-  newQuestion();
-};
-ansEl.addEventListener('keydown', e=>{ if(e.key==='Enter') check(); });
+// Timer
+function startTimer(ms, onExpire){
+  clearTimer();
+  remainingMs = ms;
+  timerEl.textContent = fmt(remainingMs);
+  tickId = setInterval(() => {
+    remainingMs -= 100;
+    if (remainingMs <= 0){
+      clearTimer();
+      timerEl.textContent = fmt(0);
+      onExpire?.();
+    } else {
+      // update once per 100ms but display in seconds
+      timerEl.textContent = fmt(remainingMs);
+    }
+  }, 100);
+}
 
-newQuestion();
+function clearTimer(){
+  if (tickId){ clearInterval(tickId); tickId = null; }
+}
+
+// Input handling (Enter submits)
+answerEl.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter') submitAnswer();
+});
+
+// If you’d like auto-submit when the typed value matches, uncomment below:
+// answerEl.addEventListener('input', ()=> {
+//   if (locked) return;
+//   const val = parseInt(answerEl.value, 10);
+//   if (!Number.isNaN(val)) submitAnswer();
+// });
+
+function submitAnswer(){
+  if (locked) return;
+  const val = parseInt(answerEl.value, 10);
+  if (Number.isNaN(val)) return; // ignore empty submit
+
+  locked = true;
+  clearTimer();
+
+  const ok = (val === a*b);
+  if (ok) score++;
+  scoreEl.textContent = score;
+
+  giveFeedback(ok, a*b, false);
+  setTimeout(nextQuestion, 500);
+}
+
+function giveFeedback(ok, correct, dueToTimeout){
+  const msg = ok
+    ? `✅ Correct!`
+    : (dueToTimeout ? `⏰ Time's up. ${correct}` : `❌ Wrong. ${correct}`);
+  feedbackEl.innerHTML = ok ? `<span class="ok">${msg}</span>` : `<span class="no">${msg}</span>`;
+  answerEl.disabled = true;
+}
+
+// Init
+loadSettings();
 
 // PWA service worker
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
+if ('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
