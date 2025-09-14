@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-f">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-g">
   <style>
     :root { --card-w: 520px; --q-size: 46px; }
 
@@ -17,32 +17,25 @@
     .field { flex: 1; min-width: 160px; }
     label { font-size: 14px; color:#444; display:block; margin-bottom:6px; }
 
-    select, input[type="number"] {
-      width: 100%; font-size: 18px; padding: 10px;
-      border-radius: 10px; border: 1px solid #ddd; background:#fff;
-    }
+    select { width: 100%; font-size: 18px; padding: 10px;
+      border-radius: 10px; border: 1px solid #ddd; background:#fff; }
 
     button { font-size: 18px; padding: 10px 16px; border: 0; border-radius: 10px; cursor:pointer; }
     .primary { background:#007aff; color:#fff; }
     .ghost { background:#f2f2f7; }
     .center { text-align:center; }
 
-    .q {
-      font-size: var(--q-size);
-      font-weight: 600;
-      letter-spacing: .5px;
-      line-height: 1.1;
-    }
+    .q { font-size: var(--q-size); font-weight: 600; letter-spacing: .5px; line-height: 1.1; }
 
     .timer { font-variant-numeric: tabular-nums; font-size: 18px; padding:6px 10px; border-radius: 999px;
       background:#f2f2f7; display:inline-block; }
 
     .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:6px; }
 
-    /* Bigger/taller answer input */
+    /* Answer input: big digits, full control (text+numeric keyboard) */
     .ans {
-      height: 96px;               /* << taller field */
-      font-size: 84px;            /* big digits */
+      height: 96px;
+      font-size: 54px;          /* this now applies to typed digits */
       font-weight: 600;
       line-height: 1.1;
       padding: 8px 14px;
@@ -54,15 +47,7 @@
       -webkit-appearance: none;
       appearance: none;
     }
-    /* Placeholder smaller so it doesn't look huge */
-    .ans::placeholder {
-      font-size: 18px;
-      font-weight: 400;
-      opacity: 0.4;
-    }
-    /* Hide spinners on iOS/Chrome */
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .ans::placeholder { font-size: 18px; font-weight: 400; opacity: 0.4; }
 
     .feedback { min-height: 28px; margin-top: 8px; font-size: 18px; }
     .ok { color:#2aa84a; } .no { color:#d12a2a; }
@@ -91,7 +76,8 @@
         </div>
         <div class="field">
           <label>Time per task (seconds)</label>
-          <input id="secondsPerTask" type="number" inputmode="numeric" min="3" max="120" value="10">
+          <input id="secondsPerTask" type="number" inputmode="numeric" min="3" max="120" value="10"
+                 style="width:100%; font-size:18px; padding:10px; border-radius:10px; border:1px solid #ddd;">
         </div>
       </div>
       <div class="row" style="justify-content:flex-end">
@@ -115,11 +101,13 @@
         <input
           id="answer"
           class="ans"
-          type="number"
-          inputmode="numeric"
-          enterkeyhint="done"
+          type="text"                 <!-- Switched from number -->
+          inputmode="numeric"         <!-- Still opens numeric keyboard -->
+          pattern="[0-9]*"
+          maxlength="3"
           placeholder="Type answer"
           aria-label="Your answer"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
         >
         <button id="submitBtn" class="primary" style="min-width:130px;">Submit</button>
       </div>
@@ -147,7 +135,7 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-f"></script>
+  <script src="script.js?v=2025-09-14-g"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
@@ -157,7 +145,7 @@
   </script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-f');
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-g');
     }
   </script>
 </body>
