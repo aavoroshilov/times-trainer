@@ -4,35 +4,61 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-b">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-e">
   <style>
-    :root { --card-w: 520px; }
+    :root { --card-w: 520px; --q-size: 46px; }
+
     body { font-family: -apple-system, system-ui; margin: 24px; background:#fafafa; }
     .card { max-width: var(--card-w); margin: auto; padding: 20px; border: 1px solid #eee;
       border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.05); background: white; }
     h1 { font-size: 22px; margin: 0 0 16px; }
+
     .row { display:flex; gap:12px; align-items:center; margin:10px 0; flex-wrap: wrap; }
     .field { flex: 1; min-width: 160px; }
     label { font-size: 14px; color:#444; display:block; margin-bottom:6px; }
-    select, input[type="number"] { width: 100%; font-size: 18px; padding: 10px;
-      border-radius: 10px; border: 1px solid #ddd; background:#fff; }
+
+    select, input[type="number"] {
+      width: 100%; font-size: 18px; padding: 10px;
+      border-radius: 10px; border: 1px solid #ddd; background:#fff;
+    }
+
     button { font-size: 18px; padding: 10px 16px; border: 0; border-radius: 10px; cursor:pointer; }
     .primary { background:#007aff; color:#fff; }
     .ghost { background:#f2f2f7; }
     .center { text-align:center; }
-    .q { font-size: 42px; font-weight: 600; letter-spacing: .5px; }
+
+    .q {
+      font-size: var(--q-size);
+      font-weight: 600;
+      letter-spacing: .5px;
+      line-height: 1.1;
+    }
+
     .timer { font-variant-numeric: tabular-nums; font-size: 18px; padding:6px 10px; border-radius: 999px;
       background:#f2f2f7; display:inline-block; }
+
     .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:6px; }
-    .ans { font-size: 42px; padding: 14px; text-align: center; width: 100%;
-      border-radius: 12px; border: 1px solid #ddd; }
+
+    .ans {
+      font-size: var(--q-size);
+      font-weight: 600;
+      line-height: 1.1;
+      padding: 14px;
+      text-align: center;
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      font-family: inherit;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .ans::placeholder { font-size: var(--q-size); font-weight: 600; opacity: .35; }
+
     .feedback { min-height: 28px; margin-top: 8px; font-size: 18px; }
     .ok { color:#2aa84a; } .no { color:#d12a2a; }
     .hidden { display:none; }
+
     .footer { margin-top: 8px; font-size: 12px; color:#777; text-align:center; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
-    th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
-    th { color:#555; font-weight: 600; }
     .muted { color:#555; }
   </style>
 </head>
@@ -99,23 +125,7 @@
           Total time: <strong id="finalTime">0s</strong>
         </p>
         <p id="finalMsg" style="font-size:20px; margin: 2px 0 10px;"></p>
-        <p id="bestLine" class="muted" style="margin: 0 0 6px;"></p>
-      </div>
-
-      <div id="recordsBlock">
-        <h3 style="font-size:16px; margin: 12px 0 4px;">Records for this mode (<span id="modeTag"></span>)</h3>
-        <table id="recordsTable" class="hidden">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Score</th>
-              <th>Time</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody id="recordsBody"></tbody>
-        </table>
-        <p id="noRecords" class="muted hidden">No records yet.</p>
+        <p id="bestLine" style="margin: 0 0 12px;"></p>
       </div>
 
       <div class="row" style="justify-content:center">
@@ -127,9 +137,8 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-b"></script>
+  <script src="script.js?v=2025-09-14-e"></script>
   <script>
-    // Ask the SW to purge stubborn old caches on load
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
         reg?.active?.postMessage({ type: 'PURGE' });
@@ -137,9 +146,8 @@
     }
   </script>
   <script>
-    // Register SW with a versioned URL so iOS fetches new code
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-b');
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-e');
     }
   </script>
 </body>
