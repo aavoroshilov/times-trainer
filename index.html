@@ -29,7 +29,6 @@
     .feedback { min-height: 28px; margin-top: 8px; font-size: 18px; }
     .ok { color:#2aa84a; } .no { color:#d12a2a; }
     .hidden { display:none; }
-    .footer { font-size: 12px; color:#777; text-align:center; margin-top:10px; }
   </style>
 </head>
 <body>
@@ -42,7 +41,9 @@
         <div class="field">
           <label>How many tasks?</label>
           <select id="taskCount">
+            <option>5</option>
             <option selected>10</option>
+            <option>15</option>
             <option>20</option>
             <option>30</option>
           </select>
@@ -70,7 +71,16 @@
         <div id="question" class="q">3 × 4 = ?</div>
       </div>
       <div class="row">
-        <input id="answer" class="ans" type="number" inputmode="numeric" placeholder="Type answer and press Enter">
+        <input
+          id="answer"
+          class="ans"
+          type="number"
+          inputmode="numeric"
+          enterkeyhint="done"
+          placeholder="Type answer"
+          aria-label="Your answer"
+        >
+        <button id="submitBtn" class="primary" style="min-width:130px;">Submit</button>
       </div>
       <div id="feedback" class="feedback center"></div>
     </div>
@@ -85,9 +95,8 @@
         <button id="changeBtn" class="ghost">Change settings</button>
       </div>
     </div>
-
-    <div class="footer">Tip: Add to Home Screen for an app-like experience. Works offline.</div>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
