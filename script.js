@@ -1,6 +1,6 @@
 // ----- Config -----
 const DELAY_CORRECT_MS = 1200;
-const DELAY_WRONG_MS   = 2400;  // longer time for wrong/timeout feedback
+const DELAY_WRONG_MS   = 2400;  // longer for wrong/timeout feedback
 
 // ----- Elements -----
 const $ = id => document.getElementById(id);
@@ -63,12 +63,7 @@ const BEST_KEY = 'tt.bestRecords';
 function loadBestMap(){ try { return JSON.parse(localStorage.getItem(BEST_KEY) || '{}'); } catch { return {}; } }
 function saveBestMap(obj){ localStorage.setItem(BEST_KEY, JSON.stringify(obj)); }
 function modeKey(tasks, secs){ return `${tasks}×${secs}s`; }
-
-function isBetter(a, b){
-  if (!b) return true;
-  if (a.score !== b.score) return a.score > b.score;
-  return a.time < b.time;
-}
+function isBetter(a, b){ if (!b) return true; if (a.score !== b.score) return a.score > b.score; return a.time < b.time; }
 
 // ----- Flow helpers -----
 function show(el){ el.classList.remove('hidden'); }
@@ -175,9 +170,16 @@ function startTimer(ms, onExpire){
 }
 function clearTimer(){ if (tickId){ clearInterval(tickId); tickId = null; } }
 
-// ----- Input -----
+// ----- Input (digits only) -----
 submitBtn.addEventListener('click', () => submitAnswer());
-answerEl.addEventListener('input', () => { submitBtn.disabled = locked || answerEl.value.trim() === ''; });
+
+// Sanitize to digits only, keep max length (3 -> up to 144)
+answerEl.addEventListener('input', () => {
+  const digits = answerEl.value.replace(/\D+/g, '').slice(0, 3);
+  if (digits !== answerEl.value) answerEl.value = digits;
+  submitBtn.disabled = locked || digits.length === 0;
+});
+
 answerEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') submitAnswer(); });
 
 function submitAnswer(){
