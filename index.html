@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-j">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-k">
   <style>
     :root { --card-w: 520px; --q-size: 40px; }
 
@@ -32,7 +32,6 @@
 
     .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:2px; }
 
-    /* Answer input: compact & large digits */
     .ans {
       height: 72px;
       font-size: 42px;
@@ -110,7 +109,7 @@
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
           autofocus
         >
-        <button id="submitBtn" class="primary" style="min-width:120px;">Submit</button>
+        <button id="submitBtn" type="button" class="primary" style="min-width:120px;">Submit</button>
       </div>
       <div id="feedback" class="feedback center"></div>
     </div>
@@ -136,7 +135,7 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-j"></script>
+  <script src="script.js?v=2025-09-14-k"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
@@ -146,7 +145,7 @@
   </script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-j');
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-k');
     }
   </script>
 </body>
