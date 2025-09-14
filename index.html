@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-g">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-h">
   <style>
     :root { --card-w: 520px; --q-size: 46px; }
 
@@ -32,10 +32,10 @@
 
     .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:6px; }
 
-    /* Answer input: big digits, full control (text+numeric keyboard) */
+    /* Answer input: big digits, numeric keypad via type="tel" */
     .ans {
       height: 96px;
-      font-size: 54px;          /* this now applies to typed digits */
+      font-size: 54px;          /* applies to typed digits */
       font-weight: 600;
       line-height: 1.1;
       padding: 8px 14px;
@@ -101,8 +101,8 @@
         <input
           id="answer"
           class="ans"
-          type="text"                 <!-- Switched from number -->
-          inputmode="numeric"         <!-- Still opens numeric keyboard -->
+          type="tel"
+          inputmode="numeric"
           pattern="[0-9]*"
           maxlength="3"
           placeholder="Type answer"
@@ -135,7 +135,7 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-g"></script>
+  <script src="script.js?v=2025-09-14-h"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
@@ -145,7 +145,7 @@
   </script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-g');
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-h');
     }
   </script>
 </body>
