@@ -1,76 +1,59 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-weights">
+  <!-- version bump only -->
+  <link rel="manifest" href="manifest.json?v=2025-09-14-polish-json">
   <style>
     :root { --card-w: 520px; --q-size: 40px; }
-
     body { font-family: -apple-system, system-ui; margin: 20px; background:#fafafa; }
     .card { max-width: var(--card-w); margin: auto; padding: 16px; border: 1px solid #eee;
       border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.05); background: white; }
     h1 { font-size: 20px; margin: 0 0 12px; }
-
     .row { display:flex; gap:10px; align-items:center; margin:8px 0; flex-wrap: wrap; }
     .field { flex: 1; min-width: 160px; }
     label { font-size: 14px; color:#444; display:block; margin-bottom:6px; }
-
-    select { width: 100%; font-size: 18px; padding: 10px;
-      border-radius: 10px; border: 1px solid #ddd; background:#fff; }
-
-    button { font-size: 18px; padding: 10px 16px; border: 0; border-radius: 10px; cursor:pointer; }
+    select { width: 100%; font-size: 18px; padding: 10px; border-radius: 10px; border: 1px solid #ddd; background:#fff; }
+    button { font-size: 16px; padding: 10px 14px; border: 0; border-radius: 10px; cursor:pointer; }
     .primary { background:#007aff; color:#fff; }
     .ghost { background:#f2f2f7; }
     .center { text-align:center; }
-
-    .q { font-size: var(--q-size); font-weight: 600; letter-spacing: .5px; line-height: 1.1; }
-
-    .timer { font-variant-numeric: tabular-nums; font-size: 16px; padding:6px 10px; border-radius: 999px;
-      background:#f2f2f7; display:inline-block; }
-
+    .q { font-size: var(--q-size); font-weight: 600; letter-spacing: .5px; line-height: 1.1; word-break: break-word; }
+    .timer { font-variant-numeric: tabular-nums; font-size: 16px; padding:6px 10px; border-radius: 999px; background:#f2f2f7; display:inline-block; }
     .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:2px; }
-
-    .ans {
-      height: 72px;
-      font-size: 42px;
-      font-weight: 600;
-      line-height: 1.1;
-      padding: 6px 12px;
-      text-align: center;
-      width: 100%;
-      border-radius: 12px;
-      border: 1px solid #ddd;
-      font-family: inherit;
-      -webkit-appearance: none;
-      appearance: none;
-    }
+    .ans { height: 64px; font-size: 38px; font-weight: 600; line-height: 1.1; padding: 6px 12px; text-align: center;
+      width: 100%; border-radius: 12px; border: 1px solid #ddd; font-family: inherit; -webkit-appearance: none; appearance: none; }
     .ans::placeholder { font-size: 18px; font-weight: 400; opacity: 0.4; }
-
+    .choices { display:flex; gap:10px; flex-wrap: wrap; justify-content:center; }
+    .choice { padding: 12px 16px; border-radius: 12px; border: 1px solid #ddd; background:#fff; font-size: 20px; min-width: 80px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06); }
     .feedback { min-height: 28px; margin-top: 6px; font-size: 18px; }
     .ok { color:#2aa84a; } .no { color:#d12a2a; }
     .hidden { display:none; }
-
     .footer { margin-top: 8px; font-size: 12px; color:#777; text-align:center; }
     .muted { color:#555; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Times Trainer ✖️</h1>
+    <h1>Times Trainer ✖️ / Ortografia 🇵🇱</h1>
 
     <!-- SETTINGS -->
     <div id="settings">
       <div class="row">
         <div class="field">
+          <label>Mode</label>
+          <select id="mode">
+            <option value="math" selected>Mathematics (× table)</option>
+            <option value="pl">Polish orthography</option>
+          </select>
+        </div>
+        <div class="field">
           <label>How many tasks?</label>
           <select id="taskCount">
-            <option>5</option>
-            <option selected>10</option>
-            <option>15</option>
-            <option>20</option>
-            <option>30</option>
+            <option>5</option><option selected>10</option><option>15</option><option>20</option><option>30</option>
           </select>
         </div>
         <div class="field">
@@ -90,27 +73,30 @@
         <div>Question: <strong id="qIndex">1</strong>/<span id="qTotal">10</span></div>
         <div>Score: <strong id="score">0</strong></div>
       </div>
+
       <div class="center" style="margin:12px 0 6px;">
         <div id="timer" class="timer">00:10</div>
       </div>
+
       <div class="center" style="margin:6px 0 8px;">
         <div id="question" class="q">3 × 7 = ?</div>
       </div>
-      <div class="row">
-        <input
-          id="answer"
-          class="ans"
-          type="tel"
-          inputmode="numeric"
-          pattern="[0-9]*"
-          maxlength="3"
-          placeholder="Type answer"
-          aria-label="Your answer"
-          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-          autofocus
-        >
-        <button id="submitBtn" type="button" class="primary" style="min-width:120px;">Submit</button>
+
+      <!-- Math input -->
+      <div id="mathBlock">
+        <div class="row">
+          <input id="answer" class="ans" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="3"
+                 placeholder="Type answer" aria-label="Your answer" autocomplete="off" autocorrect="off"
+                 autocapitalize="off" spellcheck="false" autofocus>
+          <button id="submitBtn" type="button" class="primary" style="min-width:120px;">Submit</button>
+        </div>
       </div>
+
+      <!-- Polish choices -->
+      <div id="plBlock" class="hidden">
+        <div class="choices" id="choices"></div>
+      </div>
+
       <div id="feedback" class="feedback center"></div>
     </div>
 
@@ -135,13 +121,11 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-weights"></script>
+  <script src="script.js?v=2025-09-14-polish-json"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then(reg => {
-        reg?.active?.postMessage({ type: 'PURGE' });
-      });
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-weights');
+      navigator.serviceWorker.getRegistration().then(reg => reg?.active?.postMessage({ type: 'PURGE' }));
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-polish-json');
     }
   </script>
 </body>
