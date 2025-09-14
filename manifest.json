@@ -1,0 +1,7 @@
+{
+  "name": "Times Trainer",
+  "short_name": "Times",
+  "start_url": ".",
+  "display": "standalone",
+  "icons": []
+}
