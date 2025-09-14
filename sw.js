@@ -1,7 +1,5 @@
-// Network-first service worker with hard purge hook
-const CACHE = 'times-trainer-v11';
+const CACHE = 'times-trainer-v14';
 
-// Purge all caches when the page asks, to fix stuck iPhones
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'PURGE') {
     event.waitUntil(
@@ -12,13 +10,9 @@ self.addEventListener('message', (event) => {
   }
 });
 
-self.addEventListener('install', (event) => {
-  // No pre-cache: fetch fresh from network first
-  self.skipWaiting();
-});
+self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (event) => {
-  // Clean up old caches
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
