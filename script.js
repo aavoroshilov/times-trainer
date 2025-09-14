@@ -65,26 +65,28 @@ function saveBestMap(obj){ localStorage.setItem(BEST_KEY, JSON.stringify(obj)); 
 function modeKey(tasks, secs){ return `${tasks}×${secs}s`; }
 function isBetter(a, b){ if (!b) return true; if (a.score !== b.score) return a.score > b.score; return a.time < b.time; }
 
-// ----- Flow helpers -----
+// ----- Focus helpers (keep keyboard open on iOS) -----
+function keepFocusOnSubmit(){
+  // Prevent the button press from stealing focus (which would close the keyboard)
+  submitBtn.addEventListener('mousedown', e => e.preventDefault());
+  submitBtn.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+}
+function focusAnswer(){
+  // Try to (re)focus over a couple of frames without scrolling
+  requestAnimationFrame(() => {
+    answerEl.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
+      answerEl.focus({ preventScroll: true });
+    });
+  });
+}
+
+// ----- View switches -----
 function show(el){ el.classList.remove('hidden'); }
 function hide(el){ el.classList.add('hidden'); }
 function toSettings(){ clearTimer(); hide(gameEl); hide(summaryEl); show(settingsEl); }
 function toGame(){ hide(settingsEl); hide(summaryEl); show(gameEl); }
 function toSummary(){ clearTimer(); hide(settingsEl); hide(gameEl); show(summaryEl); }
-
-// Robust focus for iOS (cursor ready to type)
-function focusAnswer(){
-  // clear first so iOS shows numeric keyboard reliably
-  answerEl.disabled = false;
-  // Try several frames + a fallback timeout
-  requestAnimationFrame(() => {
-    answerEl.focus({ preventScroll: true });
-    requestAnimationFrame(() => {
-      answerEl.focus({ preventScroll: true });
-      setTimeout(() => answerEl.focus({ preventScroll: true }), 30);
-    });
-  });
-}
 
 // ----- Start / Restart -----
 startBtn.onclick = () => {
@@ -99,6 +101,7 @@ startBtn.onclick = () => {
   scoreEl.textContent = score;
 
   toGame();
+  keepFocusOnSubmit();
   nextQuestion();
 };
 restartBtn.onclick = () => startBtn.click();
@@ -116,6 +119,8 @@ function nextQuestion(){
   a = rand(10); b = rand(10);
   questionEl.textContent = `${a} × ${b} = ?`;
 
+  // Prepare input but DON'T disable/blur (keeps keyboard up)
+  answerEl.readOnly = false;
   answerEl.value = '';
   submitBtn.disabled = true;
 
@@ -126,7 +131,6 @@ function nextQuestion(){
     setTimeout(nextQuestion, DELAY_WRONG_MS);
   });
 
-  // Put cursor in the field so you can type immediately
   focusAnswer();
 }
 
@@ -187,14 +191,11 @@ function clearTimer(){ if (tickId){ clearInterval(tickId); tickId = null; } }
 
 // ----- Input (digits only) -----
 submitBtn.addEventListener('click', () => submitAnswer());
-
 answerEl.addEventListener('input', () => {
-  // keep only digits, limit length
   const digits = answerEl.value.replace(/\D+/g, '').slice(0, 3);
   if (digits !== answerEl.value) answerEl.value = digits;
   submitBtn.disabled = locked || digits.length === 0;
 });
-
 answerEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') submitAnswer(); });
 
 function submitAnswer(){
@@ -203,7 +204,8 @@ function submitAnswer(){
   if (Number.isNaN(val)) return;
 
   locked = true;
-  answerEl.disabled = true;
+  // Keep the input focused so the keyboard stays open, just make it read-only
+  answerEl.readOnly = true;
   submitBtn.disabled = true;
   clearTimer();
 
@@ -223,7 +225,6 @@ function giveFeedback(ok, correct, dueToTimeout){
     ? `✅ Correct!`
     : (dueToTimeout ? `⏰ Time's up. Correct answer: ${correct}` : `❌ Wrong. Correct answer: ${correct}`);
   feedbackEl.innerHTML = ok ? `<span class="ok">${msg}</span>` : `<span class="no">${msg}</span>`;
-  answerEl.disabled = true;
 }
 
 // ----- Init -----
