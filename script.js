@@ -1,4 +1,8 @@
-// --- Elements ---
+// ----- Config (tweakable) -----
+const DELAY_CORRECT_MS = 1200;   // how long to show "Correct"
+const DELAY_WRONG_MS   = 1800;   // how long to show "Wrong / Time's up"
+
+// ----- Elements -----
 const $ = id => document.getElementById(id);
 const settingsEl = $('settings');
 const gameEl = $('game');
@@ -22,8 +26,14 @@ const changeBtn = $('changeBtn');
 const finalScoreEl = $('finalScore');
 const finalTotalEl = $('finalTotal');
 const finalMsgEl = $('finalMsg');
+const finalTimeEl = $('finalTime');
 
-// --- State ---
+const modeTagEl = $('modeTag');
+const recordsTable = $('recordsTable');
+const recordsBody = $('recordsBody');
+const noRecords = $('noRecords');
+
+// ----- State -----
 let totalTasks = 10;
 let secsPerTask = 10;
 let curIndex = 0;
@@ -34,13 +44,17 @@ let tickId = null;
 let remainingMs = 0;
 let locked = false; // lock input after submit/timeout until next starts
 
-// --- Utils ---
+let questionStartMs = 0;  // when the current question started
+let totalElapsedSec = 0;  // accumulated total time in seconds for the whole game
+
+// ----- Utils -----
 function two(n){ return n < 10 ? '0'+n : ''+n; }
 function fmt(ms){
   const s = Math.max(0, Math.ceil(ms/1000));
   return `00:${two(s)}`;
 }
 function rand(n){ return 1 + Math.floor(Math.random()*n); } // 1..n
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
 function saveSettings(){
   localStorage.setItem('tt.tasks', taskCountEl.value);
@@ -53,7 +67,22 @@ function loadSettings(){
   if (s) secondsPerTaskEl.value = s;
 }
 
-// --- Flow ---
+function recordsKey(tasks, secs){
+  return `${tasks}×${secs}s`;
+}
+
+function loadAllRecords(){
+  try {
+    return JSON.parse(localStorage.getItem('tt.records') || '{}');
+  } catch {
+    return {};
+  }
+}
+function saveAllRecords(obj){
+  localStorage.setItem('tt.records', JSON.stringify(obj));
+}
+
+// ----- Flow helpers -----
 function show(el){ el.classList.remove('hidden'); }
 function hide(el){ el.classList.add('hidden'); }
 
@@ -71,14 +100,15 @@ function toSummary(){
   hide(settingsEl); hide(gameEl); show(summaryEl);
 }
 
-// Start game
+// ----- Start / Restart -----
 startBtn.onclick = () => {
   totalTasks = parseInt(taskCountEl.value, 10) || 10;
-  secsPerTask = Math.min(120, Math.max(3, parseInt(secondsPerTaskEl.value, 10) || 10));
+  secsPerTask = clamp(parseInt(secondsPerTaskEl.value, 10) || 10, 3, 120);
   saveSettings();
 
   curIndex = 0;
   score = 0;
+  totalElapsedSec = 0;
   qTotalEl.textContent = totalTasks;
   scoreEl.textContent = score;
 
@@ -86,16 +116,10 @@ startBtn.onclick = () => {
   nextQuestion();
 };
 
-restartBtn.onclick = () => {
-  // restart with current settings
-  startBtn.click();
-};
+restartBtn.onclick = () => startBtn.click();
+changeBtn.onclick = () => toSettings();
 
-changeBtn.onclick = () => {
-  toSettings();
-};
-
-// Question lifecycle
+// ----- Question lifecycle -----
 function nextQuestion(){
   curIndex++;
   feedbackEl.textContent = '';
@@ -119,19 +143,77 @@ function nextQuestion(){
   answerEl.focus();
 
   // start per-task timer
+  questionStartMs = Date.now();
   startTimer(secsPerTask * 1000, () => {
-    // timeout -> wrong
+    // timeout -> wrong, count full allotted time for this task
+    totalElapsedSec += secsPerTask;
     giveFeedback(false, a*b, true);
-    // short pause, then next
-    setTimeout(nextQuestion, 600);
+    setTimeout(nextQuestion, DELAY_WRONG_MS);
   });
 }
 
 function endGame(){
+  const key = recordsKey(totalTasks, secsPerTask);
   finalScoreEl.textContent = score;
   finalTotalEl.textContent = totalTasks;
+  finalTimeEl.textContent = `${totalElapsedSec}s`;
   finalMsgEl.textContent = verdict(score, totalTasks);
+  modeTagEl.textContent = key;
+
+  // Update & show records
+  const all = loadAllRecords();
+  const list = all[key] || [];
+  list.push({
+    score,
+    total: totalTasks,
+    time: totalElapsedSec,
+    ts: Date.now()
+  });
+
+  // Sort: score desc, then time asc (faster is better)
+  list.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.time - b.time;
+  });
+
+  // Keep top 10 for this mode
+  all[key] = list.slice(0, 10);
+  saveAllRecords(all);
+
+  // Best line
+  const best = all[key][0];
+  const bestLine = (best)
+    ? `Best for ${key}: <strong>${best.score}/${best.total}</strong> with <strong>${best.time}s</strong>.`
+    : `Be the first to set a record for ${key}!`;
+  document.getElementById('bestLine').innerHTML = bestLine;
+
+  // Table render
+  renderRecords(all[key]);
+
   toSummary();
+}
+
+function renderRecords(records){
+  if (!records || records.length === 0){
+    recordsTable.classList.add('hidden');
+    noRecords.classList.remove('hidden');
+    return;
+  }
+  noRecords.classList.add('hidden');
+  recordsTable.classList.remove('hidden');
+  recordsBody.innerHTML = '';
+  records.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const date = new Date(r.ts);
+    const ds = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${r.score}/${r.total}</td>
+      <td>${r.time}s</td>
+      <td>${ds}</td>
+    `;
+    recordsBody.appendChild(tr);
+  });
 }
 
 function verdict(ok, total){
@@ -143,7 +225,7 @@ function verdict(ok, total){
   return "💪 Keep practicing — you’ll crush it next time!";
 }
 
-// Timer
+// ----- Timer -----
 function startTimer(ms, onExpire){
   clearTimer();
   remainingMs = ms;
@@ -164,7 +246,7 @@ function clearTimer(){
   if (tickId){ clearInterval(tickId); tickId = null; }
 }
 
-// Input + Submit handling
+// ----- Input + Submit handling -----
 submitBtn.addEventListener('click', () => submitAnswer());
 
 answerEl.addEventListener('input', () => {
@@ -186,21 +268,25 @@ function submitAnswer(){
   submitBtn.disabled = true;
   clearTimer();
 
+  // Time for this question (cap at secsPerTask)
+  const elapsed = Math.min(secsPerTask, Math.max(0, Math.round((Date.now() - questionStartMs)/1000)));
+  totalElapsedSec += elapsed;
+
   const ok = (val === a*b);
   if (ok) score++;
   scoreEl.textContent = score;
 
   giveFeedback(ok, a*b, false);
-  setTimeout(nextQuestion, 500);
+  setTimeout(nextQuestion, ok ? DELAY_CORRECT_MS : DELAY_WRONG_MS);
 }
 
 function giveFeedback(ok, correct, dueToTimeout){
   const msg = ok
     ? `✅ Correct!`
-    : (dueToTimeout ? `⏰ Time's up. ${correct}` : `❌ Wrong. ${correct}`);
+    : (dueToTimeout ? `⏰ Time's up. Correct answer: ${correct}` : `❌ Wrong. Correct answer: ${correct}`);
   feedbackEl.innerHTML = ok ? `<span class="ok">${msg}</span>` : `<span class="no">${msg}</span>`;
   answerEl.disabled = true;
 }
 
-// Init
+// ----- Init -----
 loadSettings();
