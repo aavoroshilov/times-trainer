@@ -1,6 +1,6 @@
 // ----- Config -----
 const DELAY_CORRECT_MS = 1200;
-const DELAY_WRONG_MS   = 2400;  // longer for wrong/timeout feedback
+const DELAY_WRONG_MS   = 2400;
 
 // ----- Elements -----
 const $ = id => document.getElementById(id);
@@ -173,8 +173,8 @@ function clearTimer(){ if (tickId){ clearInterval(tickId); tickId = null; } }
 // ----- Input (digits only) -----
 submitBtn.addEventListener('click', () => submitAnswer());
 
-// Sanitize to digits only, keep max length (3 -> up to 144)
 answerEl.addEventListener('input', () => {
+  // keep only digits, limit length
   const digits = answerEl.value.replace(/\D+/g, '').slice(0, 3);
   if (digits !== answerEl.value) answerEl.value = digits;
   submitBtn.disabled = locked || digits.length === 0;
