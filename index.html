@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-a">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-b">
   <style>
     :root { --card-w: 520px; }
     body { font-family: -apple-system, system-ui; margin: 24px; background:#fafafa; }
@@ -24,11 +24,16 @@
     .timer { font-variant-numeric: tabular-nums; font-size: 18px; padding:6px 10px; border-radius: 999px;
       background:#f2f2f7; display:inline-block; }
     .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:6px; }
-    .ans { font-size: 28px; padding: 14px; text-align: center; width: 100%;
+    .ans { font-size: 42px; padding: 14px; text-align: center; width: 100%;
       border-radius: 12px; border: 1px solid #ddd; }
     .feedback { min-height: 28px; margin-top: 8px; font-size: 18px; }
     .ok { color:#2aa84a; } .no { color:#d12a2a; }
     .hidden { display:none; }
+    .footer { margin-top: 8px; font-size: 12px; color:#777; text-align:center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+    th, td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+    th { color:#555; font-weight: 600; }
+    .muted { color:#555; }
   </style>
 </head>
 <body>
@@ -86,20 +91,45 @@
     </div>
 
     <!-- SUMMARY -->
-    <div id="summary" class="hidden center">
-      <h2 style="margin: 8px 0 0;">Game Over</h2>
-      <p style="font-size:18px;margin:6px 0;">Score: <strong id="finalScore">0</strong> / <span id="finalTotal">0</span></p>
-      <p id="finalMsg" style="font-size:20px; margin: 2px 0 16px;"></p>
+    <div id="summary" class="hidden">
+      <div class="center">
+        <h2 style="margin: 8px 0 0;">Game Over</h2>
+        <p class="muted" style="margin: 6px 0;">
+          Score: <strong id="finalScore">0</strong> / <span id="finalTotal">0</span> ·
+          Total time: <strong id="finalTime">0s</strong>
+        </p>
+        <p id="finalMsg" style="font-size:20px; margin: 2px 0 10px;"></p>
+        <p id="bestLine" class="muted" style="margin: 0 0 6px;"></p>
+      </div>
+
+      <div id="recordsBlock">
+        <h3 style="font-size:16px; margin: 12px 0 4px;">Records for this mode (<span id="modeTag"></span>)</h3>
+        <table id="recordsTable" class="hidden">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Score</th>
+              <th>Time</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+        <p id="noRecords" class="muted hidden">No records yet.</p>
+      </div>
+
       <div class="row" style="justify-content:center">
         <button id="restartBtn" class="primary">Start new game ▶︎</button>
         <button id="changeBtn" class="ghost">Change settings</button>
       </div>
     </div>
+
+    <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-a"></script>
+  <script src="script.js?v=2025-09-14-b"></script>
   <script>
-    // Ask the SW to purge old caches on load (helps stuck iPhones)
+    // Ask the SW to purge stubborn old caches on load
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
         reg?.active?.postMessage({ type: 'PURGE' });
@@ -107,9 +137,9 @@
     }
   </script>
   <script>
-    // Register SW with a versioned URL so iOS treats it as new
+    // Register SW with a versioned URL so iOS fetches new code
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-a');
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-b');
     }
   </script>
 </body>
