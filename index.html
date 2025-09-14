@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-a">
   <style>
     :root { --card-w: 520px; }
     body { font-family: -apple-system, system-ui; margin: 24px; background:#fafafa; }
@@ -97,6 +97,20 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=2025-09-14-a"></script>
+  <script>
+    // Ask the SW to purge old caches on load (helps stuck iPhones)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        reg?.active?.postMessage({ type: 'PURGE' });
+      });
+    }
+  </script>
+  <script>
+    // Register SW with a versioned URL so iOS treats it as new
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-a');
+    }
+  </script>
 </body>
 </html>
