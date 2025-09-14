@@ -1,4 +1,4 @@
-const CACHE = 'times-trainer-v16';
+const CACHE = 'times-trainer-v17';
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'PURGE') {
