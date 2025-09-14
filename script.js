@@ -72,6 +72,20 @@ function toSettings(){ clearTimer(); hide(gameEl); hide(summaryEl); show(setting
 function toGame(){ hide(settingsEl); hide(summaryEl); show(gameEl); }
 function toSummary(){ clearTimer(); hide(settingsEl); hide(gameEl); show(summaryEl); }
 
+// Robust focus for iOS (cursor ready to type)
+function focusAnswer(){
+  // clear first so iOS shows numeric keyboard reliably
+  answerEl.disabled = false;
+  // Try several frames + a fallback timeout
+  requestAnimationFrame(() => {
+    answerEl.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
+      answerEl.focus({ preventScroll: true });
+      setTimeout(() => answerEl.focus({ preventScroll: true }), 30);
+    });
+  });
+}
+
 // ----- Start / Restart -----
 startBtn.onclick = () => {
   totalTasks = parseInt(taskCountEl.value, 10) || 10;
@@ -103,9 +117,7 @@ function nextQuestion(){
   questionEl.textContent = `${a} × ${b} = ?`;
 
   answerEl.value = '';
-  answerEl.disabled = false;
   submitBtn.disabled = true;
-  answerEl.focus();
 
   questionStartMs = Date.now();
   startTimer(secsPerTask * 1000, () => {
@@ -113,6 +125,9 @@ function nextQuestion(){
     giveFeedback(false, a*b, true);
     setTimeout(nextQuestion, DELAY_WRONG_MS);
   });
+
+  // Put cursor in the field so you can type immediately
+  focusAnswer();
 }
 
 function endGame(){
