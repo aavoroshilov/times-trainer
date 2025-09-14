@@ -204,6 +204,3 @@ function giveFeedback(ok, correct, dueToTimeout){
 
 // Init
 loadSettings();
-
-// PWA service worker
-if ('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
