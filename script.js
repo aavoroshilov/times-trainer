@@ -14,6 +14,7 @@ const scoreEl = $('score');
 const timerEl = $('timer');
 const questionEl = $('question');
 const answerEl = $('answer');
+const submitBtn = $('submitBtn');
 const feedbackEl = $('feedback');
 
 const restartBtn = $('restartBtn');
@@ -114,6 +115,7 @@ function nextQuestion(){
   // reset input
   answerEl.value = '';
   answerEl.disabled = false;
+  submitBtn.disabled = true; // enabled when input appears
   answerEl.focus();
 
   // start per-task timer
@@ -153,7 +155,6 @@ function startTimer(ms, onExpire){
       timerEl.textContent = fmt(0);
       onExpire?.();
     } else {
-      // update once per 100ms but display in seconds
       timerEl.textContent = fmt(remainingMs);
     }
   }, 100);
@@ -163,24 +164,26 @@ function clearTimer(){
   if (tickId){ clearInterval(tickId); tickId = null; }
 }
 
-// Input handling (Enter submits)
+// Input + Submit handling
+submitBtn.addEventListener('click', () => submitAnswer());
+
+answerEl.addEventListener('input', () => {
+  submitBtn.disabled = locked || answerEl.value.trim() === '';
+});
+
+// Keep Enter support for hardware keyboards
 answerEl.addEventListener('keydown', (e)=>{
   if (e.key === 'Enter') submitAnswer();
 });
 
-// If you’d like auto-submit when the typed value matches, uncomment below:
-// answerEl.addEventListener('input', ()=> {
-//   if (locked) return;
-//   const val = parseInt(answerEl.value, 10);
-//   if (!Number.isNaN(val)) submitAnswer();
-// });
-
 function submitAnswer(){
   if (locked) return;
   const val = parseInt(answerEl.value, 10);
-  if (Number.isNaN(val)) return; // ignore empty submit
+  if (Number.isNaN(val)) return;
 
   locked = true;
+  answerEl.disabled = true;
+  submitBtn.disabled = true;
   clearTimer();
 
   const ok = (val === a*b);
