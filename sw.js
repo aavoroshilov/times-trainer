@@ -1,5 +1,5 @@
 // Simple offline-first cache for the core app files
-const CACHE = 'times-trainer-v3';
+const CACHE = 'times-trainer-v4';
 const ASSETS = [
   './',
   'index.html',
