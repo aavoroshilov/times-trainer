@@ -4,11 +4,11 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-i">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-j">
   <style>
-    :root { --card-w: 520px; --q-size: 40px; } /* smaller */
+    :root { --card-w: 520px; --q-size: 40px; }
 
-    body { font-family: -apple-system, system-ui; margin: 20px; background:#fafafa; } /* tighter margin */
+    body { font-family: -apple-system, system-ui; margin: 20px; background:#fafafa; }
     .card { max-width: var(--card-w); margin: auto; padding: 16px; border: 1px solid #eee;
       border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.05); background: white; }
     h1 { font-size: 20px; margin: 0 0 12px; }
@@ -32,10 +32,10 @@
 
     .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:2px; }
 
-    /* Answer input: slightly smaller & shorter */
+    /* Answer input: compact & large digits */
     .ans {
-      height: 76px;              /* was 96px */
-      font-size: 44px;           /* was 54px */
+      height: 72px;
+      font-size: 42px;
       font-weight: 600;
       line-height: 1.1;
       padding: 6px 12px;
@@ -108,6 +108,7 @@
           placeholder="Type answer"
           aria-label="Your answer"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          autofocus
         >
         <button id="submitBtn" class="primary" style="min-width:120px;">Submit</button>
       </div>
@@ -135,7 +136,7 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-i"></script>
+  <script src="script.js?v=2025-09-14-j"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
@@ -145,7 +146,7 @@
   </script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-i');
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-j');
     }
   </script>
 </body>
