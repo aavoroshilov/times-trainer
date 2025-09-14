@@ -1,6 +1,6 @@
-// ----- Config (tweakable) -----
-const DELAY_CORRECT_MS = 1200;   // how long to show "Correct"
-const DELAY_WRONG_MS   = 1800;   // how long to show "Wrong / Time's up"
+// ----- Config -----
+const DELAY_CORRECT_MS = 1200;
+const DELAY_WRONG_MS   = 2400;  // longer time for wrong/timeout feedback
 
 // ----- Elements -----
 const $ = id => document.getElementById(id);
@@ -27,11 +27,7 @@ const finalScoreEl = $('finalScore');
 const finalTotalEl = $('finalTotal');
 const finalMsgEl = $('finalMsg');
 const finalTimeEl = $('finalTime');
-
-const modeTagEl = $('modeTag');
-const recordsTable = $('recordsTable');
-const recordsBody = $('recordsBody');
-const noRecords = $('noRecords');
+const bestLineEl = $('bestLine');
 
 // ----- State -----
 let totalTasks = 10;
@@ -41,19 +37,15 @@ let score = 0;
 
 let a = 0, b = 0;
 let tickId = null;
-let remainingMs = 0;
-let locked = false; // lock input after submit/timeout until next starts
+let locked = false;
 
-let questionStartMs = 0;  // when the current question started
-let totalElapsedSec = 0;  // accumulated total time in seconds for the whole game
+let questionStartMs = 0;
+let totalElapsedSec = 0;
 
 // ----- Utils -----
 function two(n){ return n < 10 ? '0'+n : ''+n; }
-function fmt(ms){
-  const s = Math.max(0, Math.ceil(ms/1000));
-  return `00:${two(s)}`;
-}
-function rand(n){ return 1 + Math.floor(Math.random()*n); } // 1..n
+function fmt(ms){ const s = Math.max(0, Math.ceil(ms/1000)); return `00:${two(s)}`; }
+function rand(n){ return 1 + Math.floor(Math.random()*n); }
 function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
 
 function saveSettings(){
@@ -67,38 +59,23 @@ function loadSettings(){
   if (s) secondsPerTaskEl.value = s;
 }
 
-function recordsKey(tasks, secs){
-  return `${tasks}×${secs}s`;
-}
+const BEST_KEY = 'tt.bestRecords';
+function loadBestMap(){ try { return JSON.parse(localStorage.getItem(BEST_KEY) || '{}'); } catch { return {}; } }
+function saveBestMap(obj){ localStorage.setItem(BEST_KEY, JSON.stringify(obj)); }
+function modeKey(tasks, secs){ return `${tasks}×${secs}s`; }
 
-function loadAllRecords(){
-  try {
-    return JSON.parse(localStorage.getItem('tt.records') || '{}');
-  } catch {
-    return {};
-  }
-}
-function saveAllRecords(obj){
-  localStorage.setItem('tt.records', JSON.stringify(obj));
+function isBetter(a, b){
+  if (!b) return true;
+  if (a.score !== b.score) return a.score > b.score;
+  return a.time < b.time;
 }
 
 // ----- Flow helpers -----
 function show(el){ el.classList.remove('hidden'); }
 function hide(el){ el.classList.add('hidden'); }
-
-function toSettings(){
-  clearTimer();
-  hide(gameEl); hide(summaryEl); show(settingsEl);
-}
-
-function toGame(){
-  hide(settingsEl); hide(summaryEl); show(gameEl);
-}
-
-function toSummary(){
-  clearTimer();
-  hide(settingsEl); hide(gameEl); show(summaryEl);
-}
+function toSettings(){ clearTimer(); hide(gameEl); hide(summaryEl); show(settingsEl); }
+function toGame(){ hide(settingsEl); hide(summaryEl); show(gameEl); }
+function toSummary(){ clearTimer(); hide(settingsEl); hide(gameEl); show(summaryEl); }
 
 // ----- Start / Restart -----
 startBtn.onclick = () => {
@@ -115,37 +92,28 @@ startBtn.onclick = () => {
   toGame();
   nextQuestion();
 };
-
 restartBtn.onclick = () => startBtn.click();
 changeBtn.onclick = () => toSettings();
 
-// ----- Question lifecycle -----
+// ----- Question cycle -----
 function nextQuestion(){
   curIndex++;
   feedbackEl.textContent = '';
   locked = false;
 
-  if (curIndex > totalTasks){
-    endGame();
-    return;
-  }
+  if (curIndex > totalTasks){ endGame(); return; }
 
   qIndexEl.textContent = curIndex;
-  // Always 1..10 table
-  a = rand(10);
-  b = rand(10);
+  a = rand(10); b = rand(10);
   questionEl.textContent = `${a} × ${b} = ?`;
 
-  // reset input
   answerEl.value = '';
   answerEl.disabled = false;
-  submitBtn.disabled = true; // enabled when input appears
+  submitBtn.disabled = true;
   answerEl.focus();
 
-  // start per-task timer
   questionStartMs = Date.now();
   startTimer(secsPerTask * 1000, () => {
-    // timeout -> wrong, count full allotted time for this task
     totalElapsedSec += secsPerTask;
     giveFeedback(false, a*b, true);
     setTimeout(nextQuestion, DELAY_WRONG_MS);
@@ -153,67 +121,31 @@ function nextQuestion(){
 }
 
 function endGame(){
-  const key = recordsKey(totalTasks, secsPerTask);
   finalScoreEl.textContent = score;
   finalTotalEl.textContent = totalTasks;
   finalTimeEl.textContent = `${totalElapsedSec}s`;
   finalMsgEl.textContent = verdict(score, totalTasks);
-  modeTagEl.textContent = key;
 
-  // Update & show records
-  const all = loadAllRecords();
-  const list = all[key] || [];
-  list.push({
-    score,
-    total: totalTasks,
-    time: totalElapsedSec,
-    ts: Date.now()
-  });
+  const key = modeKey(totalTasks, secsPerTask);
+  const bestMap = loadBestMap();
+  const current = { score, total: totalTasks, time: totalElapsedSec, ts: Date.now() };
+  const oldBest = bestMap[key];
 
-  // Sort: score desc, then time asc (faster is better)
-  list.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.time - b.time;
-  });
-
-  // Keep top 10 for this mode
-  all[key] = list.slice(0, 10);
-  saveAllRecords(all);
-
-  // Best line
-  const best = all[key][0];
-  const bestLine = (best)
-    ? `Best for ${key}: <strong>${best.score}/${best.total}</strong> with <strong>${best.time}s</strong>.`
-    : `Be the first to set a record for ${key}!`;
-  document.getElementById('bestLine').innerHTML = bestLine;
-
-  // Table render
-  renderRecords(all[key]);
+  if (isBetter(current, oldBest)) {
+    bestMap[key] = current;
+    saveBestMap(bestMap);
+    if (oldBest) {
+      bestLineEl.innerHTML = `🎉 You beat the best result (old best: <strong>${oldBest.score}/${oldBest.total}</strong> in <strong>${oldBest.time}s</strong>). New record saved!`;
+    } else {
+      bestLineEl.innerHTML = `🎉 You set the very first record for ${key}!`;
+    }
+  } else {
+    bestLineEl.innerHTML = oldBest
+      ? `Best for ${key}: <strong>${oldBest.score}/${oldBest.total}</strong> with <strong>${oldBest.time}s</strong>.`
+      : `No best yet for ${key}.`;
+  }
 
   toSummary();
-}
-
-function renderRecords(records){
-  if (!records || records.length === 0){
-    recordsTable.classList.add('hidden');
-    noRecords.classList.remove('hidden');
-    return;
-  }
-  noRecords.classList.add('hidden');
-  recordsTable.classList.remove('hidden');
-  recordsBody.innerHTML = '';
-  records.forEach((r, i) => {
-    const tr = document.createElement('tr');
-    const date = new Date(r.ts);
-    const ds = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    tr.innerHTML = `
-      <td>${i+1}</td>
-      <td>${r.score}/${r.total}</td>
-      <td>${r.time}s</td>
-      <td>${ds}</td>
-    `;
-    recordsBody.appendChild(tr);
-  });
 }
 
 function verdict(ok, total){
@@ -228,7 +160,7 @@ function verdict(ok, total){
 // ----- Timer -----
 function startTimer(ms, onExpire){
   clearTimer();
-  remainingMs = ms;
+  let remainingMs = ms;
   timerEl.textContent = fmt(remainingMs);
   tickId = setInterval(() => {
     remainingMs -= 100;
@@ -241,22 +173,12 @@ function startTimer(ms, onExpire){
     }
   }, 100);
 }
+function clearTimer(){ if (tickId){ clearInterval(tickId); tickId = null; } }
 
-function clearTimer(){
-  if (tickId){ clearInterval(tickId); tickId = null; }
-}
-
-// ----- Input + Submit handling -----
+// ----- Input -----
 submitBtn.addEventListener('click', () => submitAnswer());
-
-answerEl.addEventListener('input', () => {
-  submitBtn.disabled = locked || answerEl.value.trim() === '';
-});
-
-// Keep Enter support for hardware keyboards
-answerEl.addEventListener('keydown', (e)=>{
-  if (e.key === 'Enter') submitAnswer();
-});
+answerEl.addEventListener('input', () => { submitBtn.disabled = locked || answerEl.value.trim() === ''; });
+answerEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') submitAnswer(); });
 
 function submitAnswer(){
   if (locked) return;
@@ -268,7 +190,6 @@ function submitAnswer(){
   submitBtn.disabled = true;
   clearTimer();
 
-  // Time for this question (cap at secsPerTask)
   const elapsed = Math.min(secsPerTask, Math.max(0, Math.round((Date.now() - questionStartMs)/1000)));
   totalElapsedSec += elapsed;
 
