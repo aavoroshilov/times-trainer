@@ -1,7 +1,11 @@
 {
   "name": "Times Trainer",
   "short_name": "Times",
+  "description": "One-by-one multiplication trainer with countdown timer.",
   "start_url": ".",
+  "scope": ".",
   "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007aff",
   "icons": []
 }
