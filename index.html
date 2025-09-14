@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-e">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-f">
   <style>
     :root { --card-w: 520px; --q-size: 46px; }
 
@@ -39,11 +39,13 @@
 
     .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:6px; }
 
+    /* Bigger/taller answer input */
     .ans {
-      font-size: 46px;       /* big digits */
+      height: 96px;               /* << taller field */
+      font-size: 54px;            /* big digits */
       font-weight: 600;
       line-height: 1.1;
-      padding: 12px;
+      padding: 8px 14px;
       text-align: center;
       width: 100%;
       border-radius: 12px;
@@ -52,13 +54,15 @@
       -webkit-appearance: none;
       appearance: none;
     }
-
-    /* Placeholder should be smaller/normal */
+    /* Placeholder smaller so it doesn't look huge */
     .ans::placeholder {
       font-size: 18px;
       font-weight: 400;
       opacity: 0.4;
     }
+    /* Hide spinners on iOS/Chrome */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
     .feedback { min-height: 28px; margin-top: 8px; font-size: 18px; }
     .ok { color:#2aa84a; } .no { color:#d12a2a; }
@@ -105,7 +109,7 @@
         <div id="timer" class="timer">00:10</div>
       </div>
       <div class="center" style="margin:8px 0 12px;">
-        <div id="question" class="q">3 × 4 = ?</div>
+        <div id="question" class="q">3 × 7 = ?</div>
       </div>
       <div class="row">
         <input
@@ -143,7 +147,7 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-e"></script>
+  <script src="script.js?v=2025-09-14-f"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
@@ -153,7 +157,7 @@
   </script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-e');
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-f');
     }
   </script>
 </body>
