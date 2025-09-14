@@ -4,16 +4,16 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <link rel="manifest" href="manifest.json?v=2025-09-14-h">
+  <link rel="manifest" href="manifest.json?v=2025-09-14-i">
   <style>
-    :root { --card-w: 520px; --q-size: 46px; }
+    :root { --card-w: 520px; --q-size: 40px; } /* smaller */
 
-    body { font-family: -apple-system, system-ui; margin: 24px; background:#fafafa; }
-    .card { max-width: var(--card-w); margin: auto; padding: 20px; border: 1px solid #eee;
+    body { font-family: -apple-system, system-ui; margin: 20px; background:#fafafa; } /* tighter margin */
+    .card { max-width: var(--card-w); margin: auto; padding: 16px; border: 1px solid #eee;
       border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.05); background: white; }
-    h1 { font-size: 22px; margin: 0 0 16px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
 
-    .row { display:flex; gap:12px; align-items:center; margin:10px 0; flex-wrap: wrap; }
+    .row { display:flex; gap:10px; align-items:center; margin:8px 0; flex-wrap: wrap; }
     .field { flex: 1; min-width: 160px; }
     label { font-size: 14px; color:#444; display:block; margin-bottom:6px; }
 
@@ -27,18 +27,18 @@
 
     .q { font-size: var(--q-size); font-weight: 600; letter-spacing: .5px; line-height: 1.1; }
 
-    .timer { font-variant-numeric: tabular-nums; font-size: 18px; padding:6px 10px; border-radius: 999px;
+    .timer { font-variant-numeric: tabular-nums; font-size: 16px; padding:6px 10px; border-radius: 999px;
       background:#f2f2f7; display:inline-block; }
 
-    .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:6px; }
+    .meta { display:flex; justify-content: space-between; color:#555; font-size:14px; margin-top:2px; }
 
-    /* Answer input: big digits, numeric keypad via type="tel" */
+    /* Answer input: slightly smaller & shorter */
     .ans {
-      height: 96px;
-      font-size: 54px;          /* applies to typed digits */
+      height: 76px;              /* was 96px */
+      font-size: 44px;           /* was 54px */
       font-weight: 600;
       line-height: 1.1;
-      padding: 8px 14px;
+      padding: 6px 12px;
       text-align: center;
       width: 100%;
       border-radius: 12px;
@@ -49,7 +49,7 @@
     }
     .ans::placeholder { font-size: 18px; font-weight: 400; opacity: 0.4; }
 
-    .feedback { min-height: 28px; margin-top: 8px; font-size: 18px; }
+    .feedback { min-height: 28px; margin-top: 6px; font-size: 18px; }
     .ok { color:#2aa84a; } .no { color:#d12a2a; }
     .hidden { display:none; }
 
@@ -91,10 +91,10 @@
         <div>Question: <strong id="qIndex">1</strong>/<span id="qTotal">10</span></div>
         <div>Score: <strong id="score">0</strong></div>
       </div>
-      <div class="center" style="margin:16px 0 8px;">
+      <div class="center" style="margin:12px 0 6px;">
         <div id="timer" class="timer">00:10</div>
       </div>
-      <div class="center" style="margin:8px 0 12px;">
+      <div class="center" style="margin:6px 0 8px;">
         <div id="question" class="q">3 × 7 = ?</div>
       </div>
       <div class="row">
@@ -109,7 +109,7 @@
           aria-label="Your answer"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
         >
-        <button id="submitBtn" class="primary" style="min-width:130px;">Submit</button>
+        <button id="submitBtn" class="primary" style="min-width:120px;">Submit</button>
       </div>
       <div id="feedback" class="feedback center"></div>
     </div>
@@ -117,13 +117,13 @@
     <!-- SUMMARY -->
     <div id="summary" class="hidden">
       <div class="center">
-        <h2 style="margin: 8px 0 0;">Game Over</h2>
-        <p class="muted" style="margin: 6px 0;">
+        <h2 style="margin: 6px 0 0;">Game Over</h2>
+        <p class="muted" style="margin: 4px 0;">
           Score: <strong id="finalScore">0</strong> / <span id="finalTotal">0</span> ·
           Total time: <strong id="finalTime">0s</strong>
         </p>
-        <p id="finalMsg" style="font-size:20px; margin: 2px 0 10px;"></p>
-        <p id="bestLine" style="margin: 0 0 12px;"></p>
+        <p id="finalMsg" style="font-size:18px; margin: 0 0 8px;"></p>
+        <p id="bestLine" style="margin: 0 0 10px;"></p>
       </div>
 
       <div class="row" style="justify-content:center">
@@ -135,7 +135,7 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-h"></script>
+  <script src="script.js?v=2025-09-14-i"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
@@ -145,7 +145,7 @@
   </script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-h');
+      navigator.serviceWorker.register('sw.js?v=2025-09-14-i');
     }
   </script>
 </body>
