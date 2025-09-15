@@ -4,8 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Times Trainer</title>
-  <!-- version bump only -->
-  <link rel="manifest" href="manifest.json?v=2025-09-14-polish-json">
+  <link rel="manifest" href="manifest.json?v=2025-09-15-txt-final">
   <style>
     :root { --card-w: 520px; --q-size: 40px; }
     body { font-family: -apple-system, system-ui; margin: 20px; background:#fafafa; }
@@ -40,7 +39,6 @@
   <div class="card">
     <h1>Times Trainer ✖️ / Ortografia 🇵🇱</h1>
 
-    <!-- SETTINGS -->
     <div id="settings">
       <div class="row">
         <div class="field">
@@ -67,7 +65,6 @@
       </div>
     </div>
 
-    <!-- GAME -->
     <div id="game" class="hidden">
       <div class="meta">
         <div>Question: <strong id="qIndex">1</strong>/<span id="qTotal">10</span></div>
@@ -100,7 +97,6 @@
       <div id="feedback" class="feedback center"></div>
     </div>
 
-    <!-- SUMMARY -->
     <div id="summary" class="hidden">
       <div class="center">
         <h2 style="margin: 6px 0 0;">Game Over</h2>
@@ -121,11 +117,11 @@
     <div class="footer">Developed by loving dad for Nicole</div>
   </div>
 
-  <script src="script.js?v=2025-09-14-polish-json"></script>
+  <script src="script.js?v=2025-09-15-txt-final"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => reg?.active?.postMessage({ type: 'PURGE' }));
-      navigator.serviceWorker.register('sw.js?v=2025-09-14-polish-json');
+      navigator.serviceWorker.register('sw.js?v=2025-09-15-txt-final');
     }
   </script>
 </body>

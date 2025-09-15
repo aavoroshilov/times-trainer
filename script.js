@@ -5,11 +5,11 @@ const EXCLUDE_LAST_N   = 5;
 
 const STATS_MATH_KEY      = 'tt.stats.math.v1';
 const STATS_PL_KEY        = 'tt.stats.pl.v1';        // per-item stats
-const STATS_PL_RULE_KEY   = 'tt.stats.pl.rule.v1';   // NEW: per-rule stats
+const STATS_PL_RULE_KEY   = 'tt.stats.pl.rule.v1';   // per-rule stats
 const BEST_KEY            = 'tt.bestRecords';
 
-// 👉 Your file with Polish tasks (array JSON or JSONL one-object-per-line)
-const ORTH_ITEMS_URL = 'orth_items.json';
+const ORTH_TXT_URL  = 'orth_items.txt';
+const ORTH_JSON_URL = 'orth_items.json'; // optional fallback
 
 // ======== Elements ========
 const $ = id => document.getElementById(id);
@@ -33,8 +33,9 @@ let totalTasks = 10, secsPerTask = 10, curIndex = 0, score = 0;
 let tickId = null, locked = false;
 let questionStartMs = 0, totalElapsedSec = 0;
 let lastIds = [];
+let usedIds = new Set(); // no duplicates within one game
 
-let ORTH_ITEMS = []; // loaded from your file
+let ORTH_ITEMS = []; 
 let curMath = { a:0, b:0 };
 let curPL   = { id:'', masked:'', options:[], correctIndex:0 };
 
@@ -49,17 +50,26 @@ function hide(el){ el.classList.add('hidden'); }
 function loadJSON(key, fallback){ try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; } }
 function saveJSON(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
 
-// ======== Best-per-mode (unchanged) ========
+// ======== Stable IDs ========
+function hashId(str){
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
+  const b36 = (h >>> 0).toString(36);
+  return b36.padStart(6, '0').slice(-6);
+}
+function prefixForRule(rk){ return rk === 'OTHER' ? 'ot' : rk.toLowerCase(); }
+
+// ======== Best-per-mode ========
 function loadBestMap(){ return loadJSON(BEST_KEY, {}); }
 function saveBestMap(m){ saveJSON(BEST_KEY, m); }
 function modeKey(){ return `${domain}:${totalTasks}×${secsPerTask}s`; }
 function isBetter(a,b){ if (!b) return true; if (a.score !== b.score) return a.score > b.score; return a.time < b.time; }
 
-// ======== Spaced-practice weights ========
+// ======== Weights ========
 function weightFromStats(s){
   const attempts = s?.attempts || 0, wrongs = s?.wrongs || 0;
-  const failureRate = (wrongs + 1) / (attempts + 2); // Laplace smoothing (no div-by-zero)
-  return 0.05 + failureRate; // 0.05..1.05 (harder → heavier)
+  const failureRate = (wrongs + 1) / (attempts + 2); // smoothed
+  return 0.05 + failureRate; // 0.05..1.05
 }
 function weightedPick(candidates, weights){
   const sum = weights.reduce((a,b)=>a+b,0);
@@ -68,18 +78,16 @@ function weightedPick(candidates, weights){
   return candidates[candidates.length-1];
 }
 
-// ======== Rule helpers (for Polish mode) ========
+// ======== Rule helpers (with your latest logic) ========
 function ruleKey(it){
-  const s = new Set(it.options.map(o => o.toLowerCase()));
-  if (s.has('ó') && s.has('u')) return 'OU';
-  if (s.has('rz') && s.has('ż')) return 'RZ';
-  if (s.has('ch') && s.has('h')) return 'CH';
-  if (s.has('ą') && s.has('ę')) return 'AE';
-  if (s.has('j') && s.has('i')) return 'JI';
+  const set = new Set(it.options.map(o => o.toLowerCase()));
+  if (set.has('ó') && set.has('u')) return 'OU';
+  if (set.has('rz') && set.has('ż')) return 'RZ';
+  if (set.has('ch') && set.has('h')) return 'CH';
+  if (set.has('ą') || set.has('ę')) return 'AE';
+  if (set.has('i') || set.has('j')) return 'JI';
   return 'OTHER';
 }
-
-// per-rule stats persisted across sessions
 function loadRuleStats(){
   const base = { OU:{attempts:0,wrongs:0}, RZ:{attempts:0,wrongs:0}, CH:{attempts:0,wrongs:0}, AE:{attempts:0,wrongs:0}, JI:{attempts:0,wrongs:0}, OTHER:{attempts:0,wrongs:0} };
   const data = loadJSON(STATS_PL_RULE_KEY, {});
@@ -93,13 +101,11 @@ function updateRuleStats(it, ok){
   if (!ok) rs[key].wrongs += 1;
   saveRuleStats(rs);
 }
-// turn per-rule failure into a multiplier (rules with more failures → heavier)
-// failure in ~0..1 → multiplier ≈ 0.5..1.5
 function ruleMultiplier(it){
   const key = ruleKey(it);
   const rs = loadRuleStats()[key] || { attempts:0, wrongs:0 };
-  const fail = (rs.wrongs + 1) / (rs.attempts + 2); // smoothed
-  return 0.5 + fail; // 0.5..1.5
+  const fail = (rs.wrongs + 1) / (rs.attempts + 2);
+  return 0.5 + fail; // rules with more failures are shown more often
 }
 
 // ======== MATH mode (unchanged) ========
@@ -161,45 +167,18 @@ function plUpdateStats(id, ok){
   rec.attempts++; if (!ok) rec.wrongs++;
   s[id] = rec; plSaveStats(s);
 }
-
-// Per-question shuffle so the correct button isn’t always first
 function shufflePLItem(item){
   const copy = { ...item, options:[...item.options], correctIndex:item.correctIndex };
-  if (copy.options.length === 2 && Math.random() < 0.5){
-    const t = copy.options[0]; copy.options[0] = copy.options[1]; copy.options[1] = t;
-    copy.correctIndex = copy.correctIndex === 0 ? 1 : 0;
+  if (copy.options.length >= 2){
+    // Fisher–Yates with correctIndex tracking
+    for (let i = copy.options.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy.options[i], copy.options[j]] = [copy.options[j], copy.options[i]];
+      if (copy.correctIndex === i) copy.correctIndex = j;
+      else if (copy.correctIndex === j) copy.correctIndex = i;
+    }
   }
   return copy;
-}
-
-// Minimal safety: fix wrong correctIndex if exactly one option reconstructs `full`.
-// (We assume Twój plik jest czyszczony ręcznie; błędne wiersze pomijamy.)
-function sanitizeItem(it){
-  if (!it || !it.masked || !it.full || !Array.isArray(it.options) || it.options.length !== 2) return null;
-  if (!it.masked.includes('__')) return null;
-  const [o0,o1] = it.options;
-  const f0 = it.masked.replace('__', o0);
-  const f1 = it.masked.replace('__', o1);
-  const ok0 = (f0 === it.full), ok1 = (f1 === it.full);
-  if (ok0 ^ ok1) return { ...it, correctIndex: ok0 ? 0 : 1 };
-  return null; // ambiguous or no match → drop
-}
-
-// Pick next Polish item:
-//   final weight = per-item weight * per-rule multiplier
-function plPickNext(){
-  const itemStats = plLoadStats();
-  let exN = EXCLUDE_LAST_N;
-  while (exN>=0){
-    const ex = new Set(lastIds.slice(-exN));
-    const cand = ORTH_ITEMS.filter(it => !ex.has(it.id));
-    if (cand.length){
-      const weights = cand.map(it => weightFromStats(itemStats[it.id]) * ruleMultiplier(it));
-      return weightedPick(cand, weights);
-    }
-    exN--;
-  }
-  return ORTH_ITEMS[Math.floor(Math.random()*ORTH_ITEMS.length)];
 }
 function renderPLQuestion(item){
   questionEl.textContent = item.masked;
@@ -221,24 +200,38 @@ function handlePLChoice(index){
   scoreEl.textContent = score;
 
   plUpdateStats(curPL.id, ok);
-  updateRuleStats(curPL, ok); // 👈 NEW: also update per-rule stats
+  updateRuleStats(curPL, ok);
 
   const full = curPL.masked.replace('__', curPL.options[curPL.correctIndex]);
   giveFeedback(ok, full, false);
   setTimeout(nextQuestion, ok ? DELAY_CORRECT_MS : DELAY_WRONG_MS);
 }
 
+// Weighted picking, avoiding repeats AND duplicates-in-game
+function plPickNext(){
+  const itemStats = plLoadStats();
+  let exN = EXCLUDE_LAST_N;
+  while (exN>=0){
+    const ex = new Set([...lastIds.slice(-exN), ...usedIds]);
+    const cand = ORTH_ITEMS.filter(it => !ex.has(it.id));
+    if (cand.length){
+      const weights = cand.map(it => weightFromStats(itemStats[it.id]) * ruleMultiplier(it));
+      return weightedPick(cand, weights);
+    }
+    exN--;
+  }
+  return ORTH_ITEMS[Math.floor(Math.random()*ORTH_ITEMS.length)];
+}
+
 // ======== Views & flow ========
 function toSettings(){ clearTimer(); hide(gameEl); hide(summaryEl); show(settingsEl); }
 function toGame(){ hide(settingsEl); hide(summaryEl); show(gameEl); }
 function toSummary(){ clearTimer(); hide(settingsEl); hide(gameEl); show(summaryEl); }
-
 function startTimer(ms, onExpire){
   clearTimer(); let t=ms; timerEl.textContent = fmt(t);
   tickId = setInterval(()=>{ t-=100; if (t<=0){ clearTimer(); timerEl.textContent = fmt(0); onExpire?.(); } else { timerEl.textContent = fmt(t); } }, 100);
 }
 function clearTimer(){ if (tickId){ clearInterval(tickId); tickId=null; } }
-
 function giveFeedback(ok, correct, dueToTimeout){
   const msg = ok ? `✅ Correct!` : (dueToTimeout ? `⏰ Time's up. Correct answer: ${correct}` : `❌ Wrong. Correct answer: ${correct}`);
   feedbackEl.innerHTML = ok ? `<span class="ok">${msg}</span>` : `<span class="no">${msg}</span>`;
@@ -269,9 +262,9 @@ startBtn.onclick = () => {
   domain = modeEl.value;
   totalTasks = parseInt(taskCountEl.value,10) || 10;
   secsPerTask = clamp(parseInt(secondsPerTaskEl.value,10) || 10, 3, 120);
-  saveSettings();
 
   curIndex = 0; score = 0; totalElapsedSec = 0; lastIds = [];
+  usedIds = new Set(); // reset per-game used IDs
   qTotalEl.textContent = totalTasks; scoreEl.textContent = score;
 
   if (domain==='math'){ show(mathBlock); hide(plBlock); } else { hide(mathBlock); show(plBlock); }
@@ -280,7 +273,6 @@ startBtn.onclick = () => {
 restartBtn.onclick = () => startBtn.click();
 changeBtn.onclick = () => toSettings();
 
-// Dispatcher
 function nextQuestion(){
   curIndex++; feedbackEl.textContent = ''; locked = false;
   if (curIndex > totalTasks){ endGame(); return; }
@@ -303,20 +295,19 @@ function nextQuestion(){
     const item = shufflePLItem(base);
     curPL = item;
     lastIds.push(item.id); if (lastIds.length>30) lastIds.shift();
+    usedIds.add(item.id); // prevent duplicates in this game
     renderPLQuestion(item);
     questionStartMs = Date.now();
     startTimer(secsPerTask*1000, () => {
       totalElapsedSec += secsPerTask;
       plUpdateStats(item.id, false);
-      updateRuleStats(item, false); // 👈 timeout counts toward rule difficulty
+      updateRuleStats(item, false);
       const full = item.masked.replace('__', item.options[item.correctIndex]);
       giveFeedback(false, full, true);
       setTimeout(nextQuestion, DELAY_WRONG_MS);
     });
   }
 }
-
-// End game (unchanged)
 function endGame(){
   finalScoreEl.textContent = score;
   finalTotalEl.textContent = totalTasks;
@@ -341,35 +332,80 @@ function endGame(){
   toSummary();
 }
 
-// ======== Load your orth_items.json (array or JSONL) ========
+// ======== TXT parser ========
+// Format per line:
+//   zwie[rz]ęta, [rz, ż]
+//   [ż]yrafa, [rz, ż]
+//   ale[i]ja, [ji, ii, i]
+function parseOrthTXT(text){
+  const items = [];
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l => l && !l.startsWith('#'));
+  for (const line of lines){
+    const m = line.match(/^(.+?)\s*,\s*\[(.+?)\]\s*$/);
+    if (!m) continue;
+    const wordWithBr = m[1];
+    const opts = m[2].split(',').map(s=>s.trim());
+    const corr = (wordWithBr.match(/\[(.+?)\]/) || [,''])[1];
+    if (!corr) continue;
+    const full = wordWithBr.replace(/\[|\]/g, '');
+    const masked = wordWithBr.replace('['+corr+']','__');
+    let options = [...opts];
+    let correctIndex = options.findIndex(o => o === corr);
+    if (correctIndex === -1){ options.unshift(corr); correctIndex = 0; }
+    const tmp = { id:'', masked, options, correctIndex, full };
+    const rk = ruleKey(tmp);
+    const prefix = prefixForRule(rk);
+    const sig = masked + '|' + options.join('|') + '|' + full;
+    tmp.id = `${prefix}-${hashId(sig)}`;
+    items.push(tmp);
+  }
+  return items;
+}
+
+// ======== Load Polish tasks ========
 (async function loadOrth(){
   try {
-    const res = await fetch(ORTH_ITEMS_URL, { cache:'no-store' });
-    const text = await res.text();
-
-    let raw;
-    try { raw = JSON.parse(text); }
-    catch { raw = text.split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line)); }
-
-    ORTH_ITEMS = raw.map(sanitizeItem).filter(Boolean);
-    if (!ORTH_ITEMS.length) {
-      ORTH_ITEMS = [
-        { id:'ou1', masked:'kr__l', options:['ó','u'], correctIndex:0, full:'król' },
-        { id:'ij1', masked:'o__ciec', options:['j','i'], correctIndex:0, full:'ojciec' }
-      ];
+    // Prefer TXT format
+    const res = await fetch(ORTH_TXT_URL, { cache:'no-store' });
+    if (res.ok){
+      const text = await res.text();
+      ORTH_ITEMS = parseOrthTXT(text);
+    } else {
+      // Fallback to JSON / JSONL if provided
+      const res2 = await fetch(ORTH_JSON_URL, { cache:'no-store' });
+      const txt = await res2.text();
+      let raw;
+      try { raw = JSON.parse(txt); }
+      catch { raw = txt.split(/\r?\n/).filter(Boolean).map(l=>JSON.parse(l)); }
+      ORTH_ITEMS = raw.map(it => {
+        if (!it || !it.masked || !it.full || !Array.isArray(it.options) || it.options.length < 2) return null;
+        if (!it.masked.includes('__')) return null;
+        let goodIdx = -1;
+        for (let i=0;i<it.options.length;i++){
+          if (it.masked.replace('__', it.options[i]) === it.full){ if (goodIdx === -1) goodIdx = i; else return null; }
+        }
+        if (goodIdx >= 0) return { ...it, correctIndex: goodIdx };
+        if (it.correctIndex != null && it.masked.replace('__', it.options[it.correctIndex]) === it.full) return it;
+        return null;
+      }).filter(Boolean);
     }
+
+    if (!ORTH_ITEMS.length) throw new Error('No orth items parsed');
+
     console.log('[orth] loaded items:', ORTH_ITEMS.length);
   } catch (e) {
-    console.error('Failed to load orth_items:', e);
+    console.error('Failed to load orth items:', e);
     ORTH_ITEMS = [
-      { id:'ou1', masked:'kr__l', options:['ó','u'], correctIndex:0, full:'król' },
-      { id:'ij1', masked:'o__ciec', options:['j','i'], correctIndex:0, full:'ojciec' }
+      { id:'ou-fallback', masked:'kr__l', options:['ó','u'], correctIndex:0, full:'król' },
+      { id:'ij-fallback', masked:'o__ciec', options:['j','i'], correctIndex:0, full:'ojciec' }
     ];
   }
 })();
 
 // boot
-loadSettings();
+(function loadSettingsOnBoot(){ const m=localStorage.getItem('tt.mode'); if(m) modeEl.value=m;
+  const t=localStorage.getItem('tt.tasks'); if(t) taskCountEl.value=t;
+  const s=localStorage.getItem('tt.secs'); if(s) secondsPerTaskEl.value=s; })();
 
 // Enable math submit from button/touch
 submitBtn.addEventListener('touchstart', e=>{ e.preventDefault(); handleMathSubmit(); }, { passive:false });
